@@ -1,4 +1,4 @@
-`SamajhAI 
+SamajhAI 
 
 An Indic-first, voice-enabled AI assistant that explains documents in simple language using Sovereign AI principles.
 
