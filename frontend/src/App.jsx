@@ -42,19 +42,30 @@ function App() {
         body: formData,
       });
 
-      const data = await res.json();
-
-      if (!data.success) {
-        throw new Error(data.error || "Server error");
+      if (!res.ok) {
+        throw new Error("Server error. Please try again.");
       }
 
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Invalid server response");
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || "Processing failed");
+      }
+
+      // ✅ THIS WAS MISSING — TEXT NOW SHOWS
       setSummary(data.data.summary || "");
 
-      // 🔊 backend audio only
+      // 🔊 Backend audio only
       if (data.data.audioUrl) {
         const audio = new Audio(`${BACKEND_URL}${data.data.audioUrl}`);
         audio.play();
       }
+
     } catch (err) {
       setError(err.message || "Something went wrong");
     } finally {
