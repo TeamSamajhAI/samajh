@@ -1,4 +1,7 @@
 // ================= ENV SETUP =================
+function sendJSON(res, status, payload) {
+  return res.status(status).json(payload);
+}
 require("dotenv").config({
   path: require("path").join(__dirname, ".env"),
   override: true,
@@ -106,7 +109,7 @@ app.post("/process-document", upload.single("document"), async (req, res) => {
     console.log("📄 /process-document called");
 
     if (!req.file) {
-      return res.status(400).json({
+      return sendJSON(res, 400, {
   success: false,
   data: {
     summary: "",
@@ -190,32 +193,26 @@ app.post("/process-document", upload.single("document"), async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("❌ OCR/PDF error:", err);
-    return res.status(500).json({
-  success: false,
-  data: {
-    summary: "",
-    audioUrl: null,
-  },
-  error: "Document processing failed",
-});
+  console.error("❌ /process-document error:", err);
 
-  }
+  return sendJSON(res, 500, {
+    success: false,
+    error: "Document processing failed",
+  });
+}
+
 });
 
 // ================= ERROR HANDLER =================
 app.use((err, req, res, next) => {
-  console.error("❌ Middleware error:", err);
-  res.status(400).json({
-  success: false,
-  data: {
-    summary: "",
-    audioUrl: null,
-  },
-  error: err.message || "Request failed",
+  console.error("❌ Unhandled middleware error:", err);
+
+  return res.status(500).json({
+    success: false,
+    error: "Unexpected server error",
+  });
 });
 
-});
 
 // ================= START SERVER =================
 app.listen(PORT, "0.0.0.0", () => {
