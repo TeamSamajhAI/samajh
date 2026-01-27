@@ -1,26 +1,23 @@
 // ================= ENV SETUP =================
-const { detectIntent } = require("./utils/detectIntent");
-const { extractTextFromImage } = require("./utils/ocr");
 require("dotenv").config({
   path: require("path").join(__dirname, ".env"),
   override: true,
 });
-
-console.log(
-  "OPENAI KEY LOADED:",
-  process.env.OPENAI_API_KEY?.startsWith("sk-")
-);
-
-// ================= IMPORTS =================
+console.log("AZURE SPEECH REGION:", process.env.AZURE_SPEECH_REGION);
+const fs = require("fs");
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
-const path = require("path");
 const pdf = require("pdf-parse");
 const OpenAI = require("openai");
 
+const { convertPdfToImages } = require("./utils/pdfToImage");
+const { detectIntent } = require("./utils/detectIntent");
+const { extractTextFromImage } = require("./utils/ocr");
 const { chunkText } = require("./utils/chunker");
 const { summarizeChunks } = require("./utils/summarizeChunks");
+const { generateSpeech } = require("./utils/azureTTS");
 
 // ================= APP INIT =================
 const app = express();
@@ -31,9 +28,23 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+console.log(
+  "OPENAI KEY LOADED:",
+  process.env.OPENAI_API_KEY?.startsWith("sk-")
+);
+app.get("/test", (req, res) => {
+  console.log("🔥 TEST ROUTE HIT");
+  res.json({ ok: true });
+});
 // ================= MIDDLEWARE =================
-app.use(cors());
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
 app.use(express.json());
+app.use("/tts", express.static("public"));
 
 // ================= MULTER CONFIG =================
 const upload = multer({
@@ -56,7 +67,6 @@ function getOcrLanguage(language) {
       return "hin";
     case "kn":
       return "kan";
-    case "en":
     default:
       return "eng";
   }
@@ -68,7 +78,6 @@ function getHumanLanguage(language) {
       return "Hindi";
     case "kn":
       return "Kannada";
-    case "en":
     default:
       return "English";
   }
@@ -84,60 +93,55 @@ app.get("/", (req, res) => {
   });
 });
 
-// Ping (CRITICAL for fetch debugging)
+// Ping
 app.get("/ping", (req, res) => {
   res.status(200).send("pong");
 });
 
-// ================= TEXT PROCESSING =================
-app.post("/process-text", (req, res) => {
-  const { query, language = "en" } = req.body;
-
-  if (!query || !query.trim()) {
-    return res.status(400).json({
-      success: false,
-      error: "Query text is required",
-    });
-  }
-
-  const intent = detectIntent(query);
-
-  return res.status(200).json({
-    success: true,
-    data: {
-      intent,
-      response: `You asked: "${query}".`,
-    },
-  });
-});
-
 // ================= DOCUMENT PROCESSING =================
-
 app.post("/process-document", upload.single("document"), async (req, res) => {
   try {
-    
     console.log("BODY:", req.body);
     console.log("FILE:", req.file?.originalname);
     console.log("📄 /process-document called");
 
     if (!req.file) {
       return res.status(400).json({
-        success: false,
-        error: "No document uploaded",
-      });
+  success: false,
+  data: {
+    summary: "",
+    audioUrl: null,
+  },
+  error: "No document uploaded",
+});
+
     }
 
     const { language = "en", query = "" } = req.body;
     const ext = path.extname(req.file.originalname).toLowerCase();
-
     let extractedText = "";
 
     // PDF
     if (ext === ".pdf") {
       const pdfData = await pdf(req.file.buffer);
       extractedText = pdfData.text || "";
+
+      if (!extractedText.trim()) {
+        console.log("📄 Scanned PDF detected, converting to images...");
+        const ocrLang = getOcrLanguage(language);
+        const imagePaths = await convertPdfToImages(req.file.buffer);
+
+        let ocrText = "";
+        for (const imgPath of imagePaths) {
+          ocrText += await extractTextFromImage(
+            fs.readFileSync(imgPath),
+            ocrLang
+          );
+        }
+        extractedText = ocrText;
+      }
     }
-    // IMAGE OCR
+    // IMAGE
     else {
       const ocrLang = getOcrLanguage(language);
       extractedText = await extractTextFromImage(
@@ -148,17 +152,22 @@ app.post("/process-document", upload.single("document"), async (req, res) => {
 
     if (!extractedText.trim()) {
       return res.status(400).json({
-        success: false,
-        error: "No readable text found",
-      });
+  success: false,
+  data: {
+    summary: "",
+    audioUrl: null,
+  },
+  error: "No readable text found",
+});
+
     }
 
     // Intent + language
     const userIntent = detectIntent(query);
     const humanLanguage = getHumanLanguage(language);
 
-    // Chunk + summarize
-    const chunks = chunkText(extractedText, 2000).slice(0, 2);
+    // Chunk + summarize (OPENAI ONLY)
+    const chunks = chunkText(extractedText, 2000).slice(0, 1);
 
     const finalSummary = await summarizeChunks(
       openai,
@@ -167,6 +176,9 @@ app.post("/process-document", upload.single("document"), async (req, res) => {
       userIntent
     );
 
+    // Azure TTS
+    const audioUrl = await generateSpeech(finalSummary, language);
+
     return res.status(200).json({
       success: true,
       data: {
@@ -174,14 +186,20 @@ app.post("/process-document", upload.single("document"), async (req, res) => {
         intent: userIntent,
         totalChunks: chunks.length,
         summary: finalSummary,
+        audioUrl,
       },
     });
   } catch (err) {
     console.error("❌ OCR/PDF error:", err);
     return res.status(500).json({
-      success: false,
-      error: "Document processing failed",
-    });
+  success: false,
+  data: {
+    summary: "",
+    audioUrl: null,
+  },
+  error: "Document processing failed",
+});
+
   }
 });
 
@@ -189,13 +207,17 @@ app.post("/process-document", upload.single("document"), async (req, res) => {
 app.use((err, req, res, next) => {
   console.error("❌ Middleware error:", err);
   res.status(400).json({
-    success: false,
-    error: err.message || "Request failed",
-  });
+  success: false,
+  data: {
+    summary: "",
+    audioUrl: null,
+  },
+  error: err.message || "Request failed",
+});
+
 });
 
 // ================= START SERVER =================
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Backend running on port ${PORT} (LAN enabled)`);
 });
-

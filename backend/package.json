@@ -14,9 +14,11 @@
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "microsoft-cognitiveservices-speech-sdk": "^1.47.0",
     "multer": "^2.0.2",
     "openai": "^6.16.0",
     "pdf-parse": "^1.1.1",
+    "pdf-poppler": "^0.2.3",
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
