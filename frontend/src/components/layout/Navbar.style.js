@@ -7,10 +7,10 @@ export const navbarStyles = {
     width: "100%",
 
     /* 🌙 Dark frosted glass */
-    background: "rgba(2, 6, 23, 0.88)",
-    backdropFilter: "blur(14px)",
-    WebkitBackdropFilter: "blur(14px)",
-    borderBottom: "1px solid rgba(15, 118, 110, 0.25)",
+    // background: "rgba(2, 6, 23, 0.88)",
+    // backdropFilter: "blur(14px)",
+    // WebkitBackdropFilter: "blur(14px)",
+    // borderBottom: "1px solid rgba(15, 118, 110, 0.25)",
 
     position: "sticky",
     top: 0,

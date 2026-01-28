@@ -9,15 +9,21 @@ import Footer from "./components/layout/Footer";
 const BACKEND_URL = "http://172.16.23.210:5001";
 
 function App() {
+  const [isListening, setIsListening] = useState(false);
+  const [conversationContext, setConversationContext] = useState("");
+  const [followUpAnswer, setFollowUpAnswer] = useState("");
+  const [followUpLoading, setFollowUpLoading] = useState(false);
+  const [followUpTranscript, setFollowUpTranscript] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState("");
   const [summary, setSummary] = useState("");
   const [error, setError] = useState("");
   const [language, setLanguage] = useState("");
 
+  /* ================= DOCUMENT EXPLAIN ================= */
   const handleExplain = async (file = null) => {
     if (loading) return;
-
     if (!language) {
       setError("Please select a language");
       return;
@@ -26,13 +32,11 @@ function App() {
     setLoading(true);
     setError("");
     setSummary("");
+    setAudioUrl("");
 
     try {
       const formData = new FormData();
-
-      if (file) {
-        formData.append("document", file);
-      }
+      if (file) formData.append("document", file);
 
       formData.append("language", language);
       formData.append("query", input || "");
@@ -42,36 +46,111 @@ function App() {
         body: formData,
       });
 
-      if (!res.ok) {
-        throw new Error("Server error. Please try again.");
-      }
+      if (!res.ok) throw new Error("Server error");
 
-      let data;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("Invalid server response");
-      }
+      const data = await res.json();
+      if (!data.success) throw new Error("Processing failed");
 
-      if (!data || !data.success) {
-        throw new Error(data?.error || "Processing failed");
-      }
-
-      // ✅ THIS WAS MISSING — TEXT NOW SHOWS
       setSummary(data.data.summary || "");
+      setConversationContext(`Explanation:\n${data.data.summary}\n`);
 
-      // 🔊 Backend audio only
-      if (data.data.audioUrl) {
-        const audio = new Audio(`${BACKEND_URL}${data.data.audioUrl}`);
-        audio.play();
-      }
-
+      setAudioUrl(
+        data.data.audioUrl ? `${BACKEND_URL}${data.data.audioUrl}` : ""
+      );
     } catch (err) {
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
+
+  /* ================= VOICE INPUT (🎯 NOW TRIGGERS EXPLAIN) ================= */
+  const startVoiceInput = () => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) return alert("Voice not supported");
+    if (!language) return alert("Please select a language");
+
+    const recognition = new SpeechRecognition();
+    recognition.lang =
+      language === "hi" ? "hi-IN" : language === "kn" ? "kn-IN" : "en-IN";
+
+    recognition.interimResults = false;
+    recognition.continuous = false;
+
+    recognition.onstart = () => setIsListening(true);
+
+    recognition.onresult = (event) => {
+      const spokenText = event.results[0][0].transcript;
+
+      // 🔹 FIRST TIME → AUTO EXPLAIN
+      if (!summary) {
+        setInput(spokenText);
+
+        // ⬇️ KEY LINE: mic = explain
+        setTimeout(() => {
+          handleExplain();
+        }, 0);
+      }
+      // 🔹 FOLLOW‑UP QUESTIONS
+      else {
+        setFollowUpTranscript(spokenText);
+        sendFollowUpToBackend(spokenText);
+      }
+    };
+
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognition.start();
+  };
+
+  /* ================= FOLLOW‑UP ================= */
+  const sendFollowUpToBackend = async (spokenText) => {
+  // ✅ FRONTEND SAFETY GUARD
+  if (!spokenText?.trim()) return;
+
+  if (!conversationContext || conversationContext.trim().length === 0) {
+    console.warn("Follow-up blocked: empty conversation context");
+    return;
+  }
+
+  setFollowUpLoading(true);
+  setFollowUpAnswer("");
+
+  try {
+    const res = await fetch(`${BACKEND_URL}/ask-followup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        context: conversationContext,
+        question: spokenText,
+        language,
+      }),
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error();
+
+    setConversationContext(
+      (prev) => prev + `\nUser: ${spokenText}\nAssistant: ${data.answer}\n`
+    );
+
+    setFollowUpAnswer(data.answer);
+
+    if (data.audioUrl) {
+      new Audio(`${BACKEND_URL}${data.audioUrl}`).play();
+    } 
+
+
+  } catch (err) {
+    setFollowUpAnswer("Something went wrong.");
+  } finally {
+    setFollowUpLoading(false);
+  }
+};
+
 
   return (
     <div style={styles.appBg}>
@@ -86,29 +165,37 @@ function App() {
           loading={loading}
           language={language}
           setLanguage={setLanguage}
+          onMicClick={startVoiceInput}   // 🎙 mic = explain
+          isListening={isListening}
         />
 
-        {loading && (
-          <div style={styles.loading}>⏳ Processing your request…</div>
-        )}
+        <ResponseCard
+          text={summary}
+          language={language}
+          audioUrl={audioUrl}
+        />
 
-        {error && (
-          <div style={styles.errorCard}>
-            <div style={styles.errorIcon}>⚠️</div>
-            <div>
-              <strong>Action required</strong>
-              <p style={styles.errorText}>{error}</p>
-            </div>
+        {summary && (
+          <div style={{ marginTop: 28, textAlign: "center" }}>
+            <p style={{ color: "#9ca3af" }}>
+              Speak again to ask a follow‑up question
+            </p>
+
+            {followUpTranscript && (
+              <p style={{ marginTop: 10, color: "#cbd5f5" }}>
+                You asked: “{followUpTranscript}”
+              </p>
+            )}
           </div>
         )}
 
-        {!loading && !summary && !error && (
-          <div style={styles.empty}>
-            Your explanation will appear here.
+        {followUpLoading && <p style={{ color: "#9ca3af" }}>Thinking…</p>}
+
+        {followUpAnswer && (
+          <div style={{ marginTop: 16, color: "#99f6e4" }}>
+            {followUpAnswer}
           </div>
         )}
-
-        <ResponseCard text={summary} language={language} />
 
         <HowItWorks />
       </div>
@@ -121,41 +208,12 @@ function App() {
 const styles = {
   appBg: {
     minHeight: "100vh",
-    background: "#0b1020",
+    background: "linear-gradient(180deg, #020617, #0b1020)",
   },
   page: {
     maxWidth: "1100px",
     margin: "0 auto",
     padding: "0 24px 48px",
-  },
-  loading: {
-    marginTop: "16px",
-    fontSize: "14px",
-    color: "#9ca3af",
-  },
-  empty: {
-    marginTop: "32px",
-    fontSize: "14px",
-    color: "#6b7280",
-    fontStyle: "italic",
-  },
-  errorCard: {
-    marginTop: "24px",
-    padding: "16px 18px",
-    display: "flex",
-    gap: "12px",
-    background: "rgba(127,29,29,0.15)",
-    border: "1px solid rgba(239,68,68,0.4)",
-    borderRadius: "12px",
-    color: "#fecaca",
-  },
-  errorIcon: {
-    fontSize: "20px",
-  },
-  errorText: {
-    marginTop: "6px",
-    fontSize: "14px",
-    color: "#fca5a5",
   },
 };
 

@@ -1,34 +1,39 @@
 export const heroStyles = {
+  /* ================= ROOT ================= */
+
   hero: {
     position: "relative",
-    padding: "110px 24px 120px",
-    maxWidth: "1000px",
+    padding: "130px 24px 140px",
+    maxWidth: "1100px",
     margin: "0 auto",
     fontFamily: "'Inter', system-ui, sans-serif",
     textAlign: "center",
+    overflow: "hidden",
   },
 
-  animatedBg: {
+  /* ================= BACKGROUND OVERLAY ================= */
+
+  bgOverlay: {
     position: "absolute",
     inset: 0,
-    background: "linear-gradient(120deg, #020617, #0f766e, #020617)",
-    backgroundSize: "300% 300%",
-    animation: "bgMove 20s ease infinite",
-    zIndex: -2,
+    background: "rgba(2, 6, 23, 0.65)",
+    zIndex: 1,
   },
 
   /* ================= CONTENT ================= */
 
   contentWrap: {
+    position: "relative",
+    zIndex: 2,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    transition: "filter 0.4s ease, opacity 0.4s ease",
+    transition: "filter 0.35s ease, opacity 0.35s ease",
   },
 
   blurred: {
-    filter: "blur(6px)",
-    opacity: 0.35,
+    filter: "blur(4px)",
+    opacity: 0.6,
     pointerEvents: "none",
   },
 
@@ -38,14 +43,16 @@ export const heroStyles = {
     display: "inline-flex",
     flexDirection: "column",
     alignItems: "center",
+    marginBottom: "10px",
   },
 
   title: {
-    fontSize: "58px",
+    fontSize: "62px",
     fontWeight: "900",
-    lineHeight: "1.1",
-    letterSpacing: "-0.02em",
-    background: "linear-gradient(90deg, #f8fafc, #94a3b8)",
+    lineHeight: "1.05",
+    letterSpacing: "-0.03em",
+    background: "linear-gradient(120deg, #f8fafc, #94a3b8, #f8fafc)",
+    backgroundSize: "200% 200%",
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
   },
@@ -53,75 +60,74 @@ export const heroStyles = {
   titleUnderline: {
     width: "100%",
     height: "4px",
-    marginTop: "10px",
-    background: "linear-gradient(90deg, #FF9933, #ffffff, #138808)",
-    animation: "glowPulse 3s ease-in-out infinite",
+    marginTop: "14px",
+    borderRadius: "999px",
+    background:
+      "linear-gradient(90deg, #FF9933, #ffffff, #138808, #FF9933)",
+    backgroundSize: "300% 100%",
+    animation: "tricolorFlow 6s linear infinite",
   },
 
   /* ================= TEXT ================= */
 
   description: {
     color: "#9ca3af",
-    marginTop: "18px",
-    maxWidth: "720px",
-    fontSize: "16px",
-    lineHeight: "1.6",
-  },
-
-  trustLine: {
-    marginTop: "10px",
-    fontSize: "13px",
-    color: "#86efac",
-    opacity: 0.9,
+    marginTop: "22px",
+    maxWidth: "760px",
+    fontSize: "16.5px",
+    lineHeight: "1.7",
   },
 
   actionHint: {
-    marginTop: "26px",
-    marginBottom: "14px",
-    fontSize: "14px",
+    marginTop: "30px",
+    marginBottom: "18px",
+    fontSize: "15px",
     color: "#cbd5f5",
     fontWeight: "500",
+    letterSpacing: "0.2px",
   },
 
   /* ================= SEARCH BAR ================= */
 
   searchWrap: {
     width: "100%",
-    maxWidth: "900px",
+    maxWidth: "920px",
     display: "flex",
     gap: "12px",
     backgroundColor: "#ffffff",
-    borderRadius: "16px",
-    padding: "5px",
-    marginTop: "6px",
-    boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+    borderRadius: "20px",
+    padding: "8px",
+    marginTop: "10px",
     alignItems: "center",
+    boxShadow:
+      "0 30px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.6)",
     transition: "box-shadow 0.25s ease, transform 0.25s ease",
   },
 
   searchWrapFocus: {
-    boxShadow: "0 0 0 2px rgba(15,118,110,0.35)",
-    transform: "translateY(-1px)",
+    boxShadow:
+      "0 0 0 2px rgba(15,118,110,0.35), 0 35px 70px rgba(0,0,0,0.45)",
+    transform: "translateY(-2px)",
   },
 
   /* ================= MIC ================= */
 
   micBtn: {
-    width: "52px",
-    height: "52px",
-    borderRadius: "10px",
+    width: "54px",
+    height: "54px",
+    borderRadius: "14px",
     border: "none",
     backgroundColor: "transparent",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
-    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+    transition: "transform 0.2s ease",
   },
 
   micBtnHover: {
-    transform: "scale(1.08)",
-    boxShadow: "0 0 0 6px rgba(15,118,110,0.12)",
+    transform: "scale(1.1)",
+    boxShadow: "0 0 0 8px rgba(15,118,110,0.12)",
   },
 
   micActive: {
@@ -142,82 +148,57 @@ export const heroStyles = {
     outline: "none",
     fontSize: "16px",
     color: "#0f172a",
-    height: "18px",
-    lineHeight: "18px",
-    padding: "0px",
+    height: "24px",
   },
 
   languageSelect: {
     border: "1.5px solid #0f766e",
-    borderRadius: "8px",
-    padding: "8px 12px",
+    borderRadius: "10px",
+    padding: "9px 14px",
     backgroundColor: "#ffffff",
     color: "#0f172a",
     fontSize: "14px",
     cursor: "pointer",
-    outline: "none",
   },
 
   uploadBtn: {
-    padding: "10px 22px",
+    padding: "12px 26px",
     fontSize: "14px",
     backgroundColor: "#0f766e",
     border: "none",
-    borderRadius: "10px",
+    borderRadius: "14px",
     color: "white",
     fontWeight: "600",
-    whiteSpace: "nowrap",
-  },
-
-  helperText: {
-    marginTop: "10px",
-    fontSize: "13px",
-    color: "#9ca3af",
-  },
-
-  /* ================= TRENDING ================= */
-
-  trendingWrap: {
-    marginTop: "28px",
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
-
-  trendingLabel: {
-    color: "#9ca3af",
-    fontSize: "13px",
-  },
-
-  trendingBtn: {
-    padding: "6px 14px",
-    border: "1px solid #334155",
-    borderRadius: "999px",
-    background: "transparent",
-    color: "#cbd5f5",
     cursor: "pointer",
-    fontSize: "13px",
-    transition: "transform 0.15s ease",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
   },
 
-  /* ================= LOADING ================= */
+  uploadBtnHover: {
+    transform: "translateY(-1px)",
+    boxShadow: "0 10px 20px rgba(15,118,110,0.35)",
+  },
+
+  /* ================= LOADING OVERLAY ================= */
 
   loadingWrap: {
-    marginTop: "18px",
+    position: "absolute",
+    inset: 0,
+    zIndex: 4,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
+    background: "rgba(2, 6, 23, 0.65)",
+    pointerEvents: "none",
   },
 
   spinnerWrap: {
-    marginBottom: "6px",
+    marginBottom: "8px",
   },
 
   spinner: {
-    width: "42px",
-    height: "42px",
+    width: "46px",
+    height: "46px",
     borderRadius: "50%",
     border: "4px solid rgba(15,118,110,0.25)",
     borderTopColor: "#0f766e",
@@ -233,60 +214,6 @@ export const heroStyles = {
 
   analysingText: {
     color: "#9ca3af",
-    fontSize: "14px",
-  },
-
-  /* ================= STATUS ================= */
-  /* ================= CONFIDENCE INDICATOR ================= */
-
-confidenceIndicator: {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  fontSize: "15px",
-  color: "#cbd5f5",
-},
-
-confidenceDot: {
-  width: "10px",
-  height: "10px",
-  borderRadius: "50%",
-},
-
-
-
-
-  statusWrap: {
-    marginTop: "34px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "12px",
-  },
-
-  successBox: {
-    padding: "16px 26px",
-    background: "rgba(15,118,110,0.18)",
-    border: "1px solid rgba(45,212,191,0.5)",
-    borderRadius: "12px",
-    color: "#99f6e4",
-    fontSize: "16px",
-    fontWeight: "600",
-    maxWidth: "560px",
-  },
-
-  confidenceWrap: {
-    fontSize: "15px",
-    color: "#cbd5f5",
-  },
-
-  lowConfidenceWarning: {
-    padding: "12px 16px",
-    backgroundColor: "rgba(127,29,29,0.15)",
-    border: "1px solid rgba(239,68,68,0.4)",
-    borderRadius: "10px",
-    color: "#fecaca",
-    maxWidth: "560px",
     fontSize: "14px",
   },
 };

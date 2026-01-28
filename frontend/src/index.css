@@ -1,30 +1,69 @@
-/* RESET */
+/* ================= RESET ================= */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* PAGE BASE */
-html, body {
+/* ================= PAGE BASE ================= */
+html,
+body,
+#root {
   width: 100%;
   height: 100%;
 }
 
 body {
-  background-color: #1f1f1f;
+  background-color: #020617; /* match Hero dark theme */
   color: white;
   font-family: Arial, sans-serif;
+  overflow-x: hidden;
 }
+
+/* ================= GLOBAL ANIMATIONS ================= */
+
+/* 🔥 REQUIRED for animatedBg in Hero */
 @keyframes bgMove {
   0% {
-    background-position: 0% 0%, 100% 100%;
+    background-position: 0% 50%;
   }
   50% {
-    background-position: 50% 50%, 50% 50%;
+    background-position: 100% 50%;
   }
   100% {
-    background-position: 0% 0%, 100% 100%;
+    background-position: 0% 50%;
   }
 }
 
+/* 🔄 Spinner animation (used by Hero spinner) */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 🎙 Mic wave animation */
+@keyframes wave {
+  0% {
+    height: 6px;
+  }
+  50% {
+    height: 18px;
+  }
+  100% {
+    height: 6px;
+  }
+}
+
+/* 🎤 Mic pulse (used in heroStyles.micActive) */
+@keyframes micPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(15, 118, 110, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0);
+  }
+}
