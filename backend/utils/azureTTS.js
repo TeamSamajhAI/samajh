@@ -27,7 +27,7 @@ async function generateSpeech(text, language) {
   const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
 
   return new Promise((resolve, reject) => {
-    synthesizer.speakTextAsync(
+    synthesizer.speakSsmlAsync(
       text,
       () => {
         synthesizer.close();

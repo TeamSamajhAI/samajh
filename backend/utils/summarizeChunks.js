@@ -4,7 +4,62 @@ async function summarizeChunks(
   language = "English",
   intent = "SUMMARY"
 ) {
-  // ================= INTENT INSTRUCTION =================
+  /* ================= SAMAJHAI SYSTEM PROMPT ================= */
+
+  const SAMAJHAI_SYSTEM_PROMPT = `
+You are SamajhAI, an intelligent document understanding and explanation assistant designed for Digital India.
+
+Your task is to deeply understand the given government or official document before responding.
+
+CRITICAL BEHAVIOR RULES:
+- DO NOT read the document line by line
+- DO NOT summarize mechanically
+- DO NOT sound like a chatbot
+- DO NOT copy phrases directly unless necessary
+
+You must explain the document as if:
+- A knowledgeable teacher, OR
+- A government officer explaining to a common citizen
+
+Explain in SIMPLE language:
+1. What this document is about
+2. Why it exists and who it is meant for
+3. Important rules, eligibility, or conditions
+4. How the process works (step by step if applicable)
+5. What the citizen should do next (if relevant)
+
+Use short paragraphs.
+Use a calm, confident, human speaking tone.
+Avoid legal jargon. Explain terms when needed.
+
+SPEAKING FORMAT RULES:
+- Use short paragraphs.
+- Use bullet points with "•" symbol for lists.
+- Clearly say dates, numbers, and amounts.
+- Group content into sections like:
+  "Key points", "Important dates", "What you should do".
+- The output will be spoken aloud, so write naturally.
+
+`;
+
+  /* ================= LANGUAGE LOCK (CRITICAL) ================= */
+
+  const languageLock = `
+LANGUAGE RULES (STRICT):
+- Respond ONLY in ${language}
+- If Hindi → ONLY Devanagari script
+- If Kannada → ONLY Kannada script
+- DO NOT mix languages
+- DO NOT use English words if language is not English
+`;
+
+  const systemMessage = {
+    role: "system",
+    content: `${SAMAJHAI_SYSTEM_PROMPT}\n\n${languageLock}`,
+  };
+
+  /* ================= INTENT INSTRUCTION ================= */
+
   let intentInstruction = "";
 
   if (intent === "ACTION") {
@@ -12,61 +67,39 @@ async function summarizeChunks(
 INTENT:
 The citizen wants to know what to do next.
 Explain clear, step-by-step actions.
-Use bullet points if helpful.
-Avoid legal or technical jargon.
+Be practical and reassuring.
 `;
   } else if (intent === "INFO") {
     intentInstruction = `
 INTENT:
 The citizen wants to understand the document.
-Explain:
-- What this document is
-- Why they received it
-- Who issued it
-Keep the tone calm and factual.
+Explain what it is, why it exists, and who issued it.
+Do NOT give steps unless necessary.
 `;
   } else {
     intentInstruction = `
 INTENT:
 The citizen wants a simple explanation.
-Focus on meaning, not instructions.
+Focus on meaning and purpose, not procedures.
 `;
   }
 
+  /* ================= CHUNK‑LEVEL EXPLANATION ================= */
+
   const chunkSummaries = [];
 
-  // ================= SYSTEM MESSAGE (HARD LANGUAGE LOCK) =================
- const systemMessage = {
-  role: "system",
-  content: `
-You are a government document explanation assistant.
-
-CRITICAL LANGUAGE RULES:
-- Respond ONLY in ${language}.
-- If the language is Hindi, use ONLY Hindi written in Devanagari script.
-- If the language is Kannada, use ONLY Kannada script.
-- Do NOT use English words, sentences, or headings.
-- Do NOT translate to English.
-- Do NOT mix languages.
-
-Breaking these rules is NOT allowed.
-`,
-};
-
-
-  // ================= CHUNK‑LEVEL EXPLANATION =================
   for (let i = 0; i < chunks.length; i++) {
     const userPrompt = `
 ${intentInstruction}
 
 TASK:
-- Explain the following government document text
-- Use simple, citizen-friendly language
-- Respond ONLY in ${language}
+- Understand the document content
+- Explain it in a human, citizen‑friendly way
+- Do NOT repeat text verbatim
 - Do NOT add new information
-- Do NOT repeat previous explanations
+- Respond ONLY in ${language}
 
-TEXT:
+DOCUMENT TEXT:
 ${chunks[i]}
 `;
 
@@ -76,8 +109,8 @@ ${chunks[i]}
         systemMessage,
         { role: "user", content: userPrompt },
       ],
-      temperature: 0.2,
-      max_tokens: 140,
+      temperature: 0.25,
+      max_tokens: 220,
     });
 
     chunkSummaries.push(
@@ -85,59 +118,21 @@ ${chunks[i]}
     );
   }
 
-  // ================= FINAL MERGE =================
- // ================= FINAL MERGE =================
-let mergePrompt = "";
+  /* ================= FINAL MERGE ================= */
 
-if (intent === "ACTION") {
-  mergePrompt = `
+  let mergePrompt = `
 ${intentInstruction}
 
 TASK:
-- Merge the explanations into ONE clear response
-- Clearly explain what the citizen should DO next
-- Present the answer as numbered steps
-- Use short, simple sentences
-- Avoid legal or technical language
+- Combine all explanations into ONE clear explanation
+- Ensure smooth flow like spoken language
+- Do NOT repeat information
+- Do NOT add anything new
 - Use ONLY ${language}
-- Do NOT add new information
 
 PARTIAL EXPLANATIONS:
 ${chunkSummaries.join("\n\n")}
 `;
-} else if (intent === "INFO") {
-  mergePrompt = `
-${intentInstruction}
-
-TASK:
-- Explain the document in THREE clear parts:
-  1. What this document is
-  2. Why the citizen received it
-  3. Who issued it
-- Use calm, citizen-friendly language
-- Do NOT give instructions or steps
-- Use ONLY ${language}
-- Do NOT add new information
-
-PARTIAL EXPLANATIONS:
-${chunkSummaries.join("\n\n")}
-`;
-} else {
-  mergePrompt = `
-${intentInstruction}
-
-TASK:
-- Merge the partial explanations into ONE simple explanation
-- Focus on meaning, not actions
-- Keep the explanation short and clear
-- Use ONLY ${language}
-- Do NOT add new information
-
-PARTIAL EXPLANATIONS:
-${chunkSummaries.join("\n\n")}
-`;
-}
-
 
   const finalCompletion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -145,43 +140,43 @@ ${chunkSummaries.join("\n\n")}
       systemMessage,
       { role: "user", content: mergePrompt },
     ],
-    temperature: 0.15,
-    max_tokens: 220,
+    temperature: 0.2,
+    max_tokens: 320,
   });
 
-const finalText = finalCompletion.choices[0].message.content.trim();
+  const finalText = finalCompletion.choices[0].message.content.trim();
 
-// ===== Language‑aware headings (CRITICAL for TTS) =====
+  /* ================= LANGUAGE‑AWARE HEADINGS (TTS SAFE) ================= */
 
-if (intent === "ACTION") {
+  if (intent === "ACTION") {
+    if (language === "Hindi") {
+      return `आपको आगे क्या करना चाहिए:\n\n${finalText}`;
+    }
+    if (language === "Kannada") {
+      return `ನೀವು ಮುಂದೇನು ಮಾಡಬೇಕು:\n\n${finalText}`;
+    }
+    return `What you should do next:\n\n${finalText}`;
+  }
+
+  if (intent === "INFO") {
+    if (language === "Hindi") {
+      return `इस दस्तावेज़ के बारे में:\n\n${finalText}`;
+    }
+    if (language === "Kannada") {
+      return `ಈ ದಾಖಲೆ ಬಗ್ಗೆ:\n\n${finalText}`;
+    }
+    return `About this document:\n\n${finalText}`;
+  }
+
+  // SUMMARY
   if (language === "Hindi") {
-    return `आपको आगे क्या करना चाहिए:\n\n${finalText}`;
+    return `......आइए इस दस्तावेज़ को आसान भाषा में समझते हैं......:\n\n${finalText}`;
   }
   if (language === "Kannada") {
-    return `ನೀವು ಮುಂದೇನು ಮಾಡಬೇಕು:\n\n${finalText}`;
+    return `......ದಾಖಲೆಯ ಸಾರಾಂಶ......:\n\n${finalText}`;
   }
-  return `What you should do next:\n\n${finalText}`;
-}
 
-if (intent === "INFO") {
-  if (language === "Hindi") {
-    return `इस दस्तावेज़ के बारे में:\n\n${finalText}`;
-  }
-  if (language === "Kannada") {
-    return `ಈ ದಾಖಲೆ ಬಗ್ಗೆ:\n\n${finalText}`;
-  }
-  return `About this document:\n\n${finalText}`;
-}
-
-// SUMMARY
-if (language === "Hindi") {
-  return `दस्तावेज़ का सारांश:\n\n${finalText}`;
-}
-if (language === "Kannada") {
-  return `ದಾಖಲೆಯ ಸಾರಾಂಶ:\n\n${finalText}`;
-}
-
-return `Summary of the document:\n\n${finalText}`;
+  return `......Let's Understand the document in simple words......:\n\n${finalText}`;
 }
 
 module.exports = { summarizeChunks };
