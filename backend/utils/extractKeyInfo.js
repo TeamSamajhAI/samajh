@@ -1,7 +1,7 @@
 // utils/extractKeyInfo.js
 const { KEY_INFO_SYSTEM_PROMPT } = require("./KeyInfoPrompt");
 
-async function extractKeyInfo(openai, text, language) {
+export async function extractKeyInfo(openai, text, language) {
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [

@@ -1,6 +1,6 @@
 // utils/extractiveSummarizer.js
 
-function extractiveSummary(text, maxSentences = 5) {
+export function extractiveSummary(text, maxSentences = 5) {
   if (!text || typeof text !== "string") return "";
 
   // Clean text
