@@ -1,4 +1,4 @@
-function detectIntent(query = "") {
+export function detectIntent(query = "") {
   const q = query.toLowerCase();
 
   if (
@@ -23,4 +23,4 @@ function detectIntent(query = "") {
   return "SUMMARY";
 }
 
-module.exports = { detectIntent };
+// module.exports = { detectIntent };

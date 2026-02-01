@@ -1,4 +1,4 @@
-async function summarizeChunks(
+export async function summarizeChunks(
   openai,
   chunks,
   language = "English",
@@ -179,4 +179,4 @@ ${chunkSummaries.join("\n\n")}
   return `......Let's Understand the document in simple words......:\n\n${finalText}`;
 }
 
-module.exports = { summarizeChunks };
+// module.exports = { summarizeChunks };

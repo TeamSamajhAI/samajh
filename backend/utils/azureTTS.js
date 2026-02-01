@@ -1,44 +1,51 @@
-const fs = require("fs");
-const path = require("path");
-const sdk = require("microsoft-cognitiveservices-speech-sdk");
+import fs from "fs";
+import path from "path";
+import sdk from "microsoft-cognitiveservices-speech-sdk";
+import { fileURLToPath } from "url";
 
-async function generateSpeech(text, language) {
-  const speechConfig = sdk.SpeechConfig.fromSubscription(
-    process.env.AZURE_SPEECH_KEY,
-    process.env.AZURE_SPEECH_REGION
-  );
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-  const voiceMap = {
-    en: "en-IN-NeerjaNeural",
-    hi: "hi-IN-SwaraNeural",
-    kn: "kn-IN-GaganNeural",
-  };
+// Audio output directory
+const AUDIO_DIR = path.join(__dirname, "..", "public", "tts");
 
-  speechConfig.speechSynthesisVoiceName =
-    voiceMap[language] || voiceMap.en;
-
-  const publicDir = path.join(__dirname, "..", "public");
-  if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
-
-  const fileName = `tts-${Date.now()}.mp3`;
-  const filePath = path.join(publicDir, fileName);
-
-  const audioConfig = sdk.AudioConfig.fromAudioFileOutput(filePath);
-  const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
-
-  return new Promise((resolve, reject) => {
-    synthesizer.speakSsmlAsync(
-      text,
-      () => {
-        synthesizer.close();
-        resolve(`/tts/${fileName}`);
-      },
-      (err) => {
-        synthesizer.close();
-        reject(err);
-      }
-    );
-  });
+if (!fs.existsSync(AUDIO_DIR)) {
+  fs.mkdirSync(AUDIO_DIR, { recursive: true });
 }
 
-module.exports = { generateSpeech };
+export async function generateSpeech(ssml, language = "en") {
+  return new Promise((resolve, reject) => {
+    try {
+      const speechConfig = sdk.SpeechConfig.fromSubscription(
+        process.env.AZURE_SPEECH_KEY,
+        process.env.AZURE_SPEECH_REGION
+      );
+
+      speechConfig.speechSynthesisOutputFormat =
+        sdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
+
+      const fileName = `tts_${Date.now()}.mp3`;
+      const filePath = path.join(AUDIO_DIR, fileName);
+
+      const audioConfig = sdk.AudioConfig.fromAudioFileOutput(filePath);
+      const synthesizer = new sdk.SpeechSynthesizer(
+        speechConfig,
+        audioConfig
+      );
+
+      synthesizer.speakSsmlAsync(
+        ssml,
+        () => {
+          synthesizer.close();
+          resolve(`/tts/${fileName}`);
+        },
+        (err) => {
+          synthesizer.close();
+          reject(err);
+        }
+      );
+    } catch (err) {
+      reject(err);
+    }
+  });
+}

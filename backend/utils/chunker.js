@@ -1,15 +1,13 @@
-function chunkText(text, chunkSize = 2000) {
+export function chunkText(text, size = 2000) {
+  if (!text) return [];
+
   const chunks = [];
   let start = 0;
 
   while (start < text.length) {
-    chunks.push(text.slice(start, start + chunkSize));
-    start += chunkSize;
+    chunks.push(text.slice(start, start + size));
+    start += size;
   }
 
   return chunks;
 }
-
-module.exports = {
-  chunkText,
-};
