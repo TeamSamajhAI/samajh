@@ -19,6 +19,11 @@ function explanationToSSML(text, language) {
 
   const langCode = langMap[language] || "en-IN";
   const voice = voiceMap[language] || voiceMap.en;
+  console.log("ENV CHECK", {
+  OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+  AZURE_SPEECH_KEY: !!process.env.AZURE_SPEECH_KEY,
+  AZURE_SPEECH_REGION: process.env.AZURE_SPEECH_REGION,
+});
 
   // Handle bullets & newlines → pauses
   const formatted = text
@@ -39,10 +44,10 @@ function explanationToSSML(text, language) {
 function sendJSON(res, status, payload) {
   return res.status(status).json(payload);
 }
-require("dotenv").config({
-  path: require("path").join(__dirname, ".env"),
-  override: true,
-});
+// require("dotenv").config({
+//   path: require("path").join(__dirname, ".env"),
+//   override: true,
+// });
 console.log("AZURE SPEECH REGION:", process.env.AZURE_SPEECH_REGION);
 const fs = require("fs");
 const path = require("path");
@@ -61,7 +66,7 @@ const { generateSpeech } = require("./utils/azureTTS");
 
 // ================= APP INIT =================
 const app = express();
-const PORT = 5001;
+const PORT =process.env.PORT || 5001;
 
 // ================= OPENAI CLIENT =================
 const openai = new OpenAI({
@@ -77,12 +82,28 @@ app.get("/test", (req, res) => {
   res.json({ ok: true });
 });
 // ================= MIDDLEWARE =================
+const allowedOrigins = [
+  "https://samajhai-2aea5.web.app",
+  "https://samajhai-2aea5.firebaseapp.com"
+];
+
 app.use(cors({
-  origin: "*",
+  origin: function (origin, callback) {
+    // allow server-to-server & curl
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.error("❌ CORS blocked origin:", origin);
+    return callback(new Error("Not allowed by CORS"));
+  },
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
+app.options("*", cors());
 app.use(express.json());
 app.use("/tts", express.static("public"));
 
@@ -159,6 +180,7 @@ async function callLLM(prompt, language = "en") {
 
 
 
+
 // ================= ROUTES =================
 
 // Health
@@ -208,7 +230,7 @@ Answer rules:
     const ssml = explanationToSSML(answer, language);
 
     // 2️⃣ Voice answer (Sarvam)
-    const audioUrl = await generateSarvamSpeech(ssml, language);
+    const audioUrl = await generateSpeech(ssml, language);
 
 
     return res.json({
